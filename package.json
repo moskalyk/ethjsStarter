@@ -1,0 +1,19 @@
+{
+  "name": "ethjsstarter",
+  "version": "0.0.1",
+  "description": "Example project using EthereumJS as a git submodule",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "git submodule update && npm run build:modules",
+    "build:modules": "cd ethereumjs-monorepo && npm i",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "^5.3.3"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.1"
+  }
+}
