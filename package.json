@@ -11,9 +11,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@ethereumjs/common": "^4.2.0",
-    "@ethereumjs/tx": "^5.2.1",
-    "@ethereumjs/vm": "^7.2.1",
     "ethereumjs-abi": "^0.6.8",
     "typescript": "^5.3.3"
   },
