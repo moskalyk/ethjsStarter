@@ -5,14 +5,16 @@ import { Account, Address, bytesToHex, hexToBytes, intToBytes, setLengthLeft } f
 
 //@ts-ignore
 import abi from 'ethereumjs-abi';
-import { Common } from '@ethereumjs/common';
-import { VM } from '@ethereumjs/vm';
-import { LegacyTransaction } from '@ethereumjs/tx';
+import { Common } from '../ethereumjs-monorepo/packages/common/dist/cjs/index';
+import { VM } from '../ethereumjs-monorepo/packages/vm/dist/cjs/index';
+import { LegacyTransaction } from '../ethereumjs-monorepo/packages/tx/dist/cjs/index';
 
 const test = async () => {
     
   const common = new Common({ chain: 'mainnet' });
-  const vm: any = await VM.create({ common });
+  const trie = await Trie.create({ useKeyHashing: false})
+  const sm = new DefaultStateManager({ trie})
+  const vm = await VM.create({ common, stateManager: sm });
 
   const account = new Account(BigInt(1), BigInt(100485760000000000001000000));
   const privateKey = Buffer.from('972146b21b16f89ac82e1331adcd9f09927f99ce54f78122bb6a41cad1c1fe24', 'hex');
@@ -71,22 +73,22 @@ const test = async () => {
   const res = await vm.runTx({ tx: signedTx7 });
   console.log(res)
 
-  const storage = await vm.stateManager.dumpStorage(result1.createdAddress)
+  const storage = await vm.stateManager.dumpStorage(result1.createdAddress!)
   const keys = Object.keys(storage)
-  const proof = await vm.stateManager.getProof(result1.createdAddress, keys.map(key => hexToBytes(key)))
+  const proof = await vm.stateManager.getProof(result1.createdAddress!, keys.map(key => hexToBytes(key)))
   const newTrie = (await Trie.createFromProof(
       proof.accountProof.map((el: any) => hexToBytes(el)),
       { useKeyHashing: false }
     ))
 
-  const partialSM = await DefaultStateManager.fromProof(proof, false,  { trie: newTrie})
-
+  const partialSM = await DefaultStateManager.fromProof(proof, true,  { trie: newTrie})
+  console.log(await partialSM.getAccount(result1.createdAddress!))
   // Pre-fund the account
   await partialSM.putAccount(caller, account);
 
   const dataGet = abi.simpleEncode("retrieve(uint,uint)", 0, 0);
   const txParamsGetState2 = {
-      nonce: '0x4', // or 0x1
+      nonce: '0x1', // or 0x1
       to: result1.createdAddress,
       data: dataGet,
       gasPrice: '0x09184e72a000',
@@ -95,12 +97,15 @@ const test = async () => {
 
   let tx5 = LegacyTransaction.fromTxData(txParamsGetState2);
   let signedTx5 = await tx5.sign(privateKey);
-  const vm2: any = await VM.create({ common, stateManager: partialSM });
-  // let result5 = await vm.runTx({ tx: signedTx5 });
+  const vm2 = await VM.create({ common, stateManager: partialSM });
+  //let result5 = await vm.runTx({ tx: signedTx5 });
   let result5 = await vm2.runTx({ tx: signedTx5 });
+  console.log(result5)
   let returnedNumber2 = abi.rawDecode(['uint[]'], result5.execResult.returnValue)[0];
 
   console.log('Number:', returnedNumber2.toString());
+  console.log(await vm2.stateManager.dumpStorage(result1.createdAddress!))
+  console.log(await vm.stateManager.dumpStorage(result1.createdAddress!))
 }
 
 const main = async () => {
